@@ -1,0 +1,63 @@
+# OnControl Imaging — despliegue unificado para una VM (Azure B-series).
+# Levanta Orthanc (PACS) + microservicio de segmentación + Caddy (HTTPS automático).
+# Todo queda detrás de un único dominio HTTPS, mismo origen -> sin CORS/mixed-content.
+#
+# Requisitos en la VM: Docker + plugin compose. Puertos 80/443/22 abiertos en el NSG.
+# Uso:
+#   export PUBLIC_HOST=<label>.<region>.cloudapp.azure.com
+#   docker compose -f docker-compose.deploy.yml up -d --build
+#
+# Las dos carpetas de imaging deben estar juntas en la VM (mismo padre):
+#   OnControlImaging-orthanc/   (este archivo)
+#   OnControlImaging-Service/   (build del microservicio)
+
+services:
+  orthanc:
+    image: orthancteam/orthanc:latest
+    container_name: orthanc-oncontrol
+    restart: unless-stopped
+    environment:
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      OHIF_PLUGIN_ENABLED: "true"
+      VOLVIEW_PLUGIN_ENABLED: "true"
+    volumes:
+      - orthanc-storage:/var/lib/orthanc/db          # DICOM persistente
+      - ./orthanc.json:/etc/orthanc/orthanc.json:ro
+    # Sin puertos publicados: Caddy lo expone por HTTPS.
+
+  imaging-service:
+    build: ../OnControlImaging-Service
+    container_name: imaging-oncontrol
+    restart: unless-stopped
+    environment:
+      ORTHANC_URL: http://orthanc:8042                # interno (red docker)
+      PUBLIC_BASE_URL: https://${PUBLIC_HOST}/imaging # lo que ve el navegador
+      VOLVIEW_URL: https://${PUBLIC_HOST}/volview/index.html
+      STORAGE_DIR: /app/storage
+    volumes:
+      - imaging-storage:/app/storage                 # volúmenes derivados persistentes
+    depends_on:
+      - orthanc
+
+  caddy:
+    image: caddy:2
+    container_name: caddy-oncontrol
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - orthanc
+      - imaging-service
+
+volumes:
+  orthanc-storage:
+  imaging-storage:
+  caddy-data:
+  caddy-config:

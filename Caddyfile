@@ -1,0 +1,16 @@
+# HTTPS automático (Let's Encrypt) para el dominio de la VM.
+# PUBLIC_HOST viene del entorno (docker-compose lo inyecta).
+{$PUBLIC_HOST} {
+	# Microservicio de imaging: /imaging/* -> imaging-service (se quita el prefijo).
+	# Spring llama https://HOST/imaging/studies/{id}/segment-lungs
+	# VolView baja el .mha de https://HOST/imaging/studies/{id}/derived/lung-volume
+	handle_path /imaging/* {
+		reverse_proxy imaging-service:8001
+	}
+
+	# Todo lo demás -> Orthanc: /volview, /ui, /app, /dicom-web, /wado,
+	# /studies, /series, /instances, /patients, etc.
+	handle {
+		reverse_proxy orthanc:8042
+	}
+}

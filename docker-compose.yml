@@ -1,0 +1,18 @@
+services:
+  orthanc:
+    image: orthancteam/orthanc:latest
+    container_name: orthanc-oncontrol
+    restart: unless-stopped
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+    environment:
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      OHIF_PLUGIN_ENABLED: "true"
+      VOLVIEW_PLUGIN_ENABLED: "true"
+    volumes:
+      - orthanc-storage:/var/lib/orthanc/db
+      - ./orthanc.json:/etc/orthanc/orthanc.json:ro
+
+volumes:
+  orthanc-storage:

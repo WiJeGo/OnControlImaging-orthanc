@@ -1,0 +1,18 @@
+{
+  "Name": "OnControlOrthanc",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/",
+    "EnableWado": true,
+    "WadoRoot": "/wado"
+  },
+
+  "OHIF": {
+    "DataSource": "dicom-web",
+    "RouterBasename": "/ohif/"
+  }
+}
